@@ -1,0 +1,547 @@
+# Use this for the Clinical Opening form #
+#   logo: |
+#    <img src="/playgroundstatic/default/4/Suffolk_Logo2.png" style="max-height:2.9em;"/> <h4>Clinical Programs</h4>
+metadata:
+  title: Clinical Case Opening Form
+  short title: Case Opening Form
+  comment: Opening form for clinical programs
+  logo: |
+    <img src="/packagestatic/docassemble.finalproject/suffolk-logo-boston.svg" style="max-height:1.9em;"/> <h3>Clinical Programs</h3>
+---
+features:
+  # This moves the "help" and "back" button next to the Continue button
+  # question help button: True
+  question back button: True
+  # One way to customize appearance is with a Bootstrap theme
+  # Try linking one from https://www.bootstrapcdn.com/bootswatch/
+  # Or generate your own via https://pikock.github.io/bootstrap-magic/app/index.html#!/editor
+ # bootstrap theme: https://stackpath.bootstrapcdn.com/bootswatch/4.4.1/cosmo/bootstrap.min.css
+  bootstrap theme: https://stackpath.bootstrapcdn.com/bootswatch/4.4.1/darkly/bootstrap.min.css
+---
+question: |
+  [BR] Would you like to add any relevant contacts for ${ client.name } (e.g. family, witnesses, etc.)?
+fields:
+  - no label: contact.there_are_any
+    datatype: yesnoradio
+  - How many?: contact.target_number
+    datatype: integer
+    max: 4
+    show if: contact.there_are_any
+---
+question: |
+  [BR] Please enter the ${ordinal(i)} relevant contact's information below?
+fields:
+  - First name: contact[i].name.first
+  - Last name: contact[i].name.last
+  - Relation: contact[i].relation
+  - Email: contact[i].email
+    datatype: email
+    required: False
+  - Phone Number: contact[i].phone
+  - Street: contact[i].address.address
+    address autocomplete: True
+  - City/Town: contact[i].address.city
+  - State: contact[i].address.state
+    code: states_list()
+  - Zip Code: contact[i].address.zip
+---
+objects:
+  - studentattorney: Individual
+  - client: Individual
+  - parent: Individual
+  - conflict: DAObject
+  - opp: Individual
+  - contact: DAList.using(object_type=Individual,ask_number=True)
+
+---
+mandatory: True
+code: |
+  welcome
+  studentattorney.name.first
+  client.name.first
+  client.race
+  conflict_description = "N/A"
+  conflicts_exist = False
+  client.interpretor = False
+  opp.interpretor = False
+  conflict_complete
+  if conflict_complete:
+    supervisor_signature
+    case_approval = True
+  else:
+    supervisor_signature = ""
+    case_approval = False
+  if client.age_in_years() >= 18:
+    client.income
+  else: 
+    client.income = "N/A" 
+    client.incomesource = "N/A"
+    client.householdsize = "1"
+    client.dependants = "0"
+  if opp_party:
+    opp.name.first
+  else:
+    opp.name.first = ""
+    opp.name.last = ""
+    opp.gender = ""
+    opp.dob = ""
+    opp.title = ""
+    opp.company = ""
+    opp.aliases = ""
+    opp.address.address = ""
+    opp.address.city = ""
+    opp.address.zip = ""
+    opp.phone = ""
+    opp.alternative = ""
+    opp.language = ""
+    opp.email = ""
+    opp.notes = ""
+  contact.gather()
+  email_sent_ok
+---
+question: |
+  [BR] Suffolk University Law School
+subquestion: |
+  This is the Case Opening form for the Clinical Programs at Suffolk University
+field: welcome
+---
+question: |
+  [BR] Student Attorney Information
+fields: 
+  - First name: studentattorney.name.first
+  - Last name: studentattorney.name.last
+  - Email: studentattorney.email
+    datatype: email
+  - Clinic/Practice Area: studentattorney.practice
+    datatype: dropdown
+    choices:
+      - Accelerator Practice
+      - Defenders
+      - Family Advocacy
+      - Health Law
+      - Immigration
+      - Indigenous Peoples Rights
+      - Innocence Clinic
+      - Intellectual Property & Entrepeneurship
+      - Juvenile Defenders
+  - Supervisor Name: studentattorney.supervisor
+---
+question: |
+  [BR] Matter Information
+fields: 
+  - Judge / ALJ: judge
+  - Court / Agency: courthouse
+  - Court / Agency Docket Number: docketnumber
+  - Referral Source: referral
+  - Scope of Representation: scopeofrep
+    datatype: dropdown
+    choices:
+      - Intake only - referred out
+      - Conflicted out
+      - Advice only
+      - Limited assistance w/ court appearance
+      - Limited assistance w/o court appearance
+      - Pro se document preparation
+      - Full representation
+  - Brief Case Synopsis: casesynopsis
+    input type: area
+
+---
+question: |
+  [BR] Client Contact Information
+fields:
+  - First name: client.name.first
+  - Last name: client.name.last
+  - Title(if appp): client.title
+    required: False
+  - Company(if app): client.company
+    required: False
+  - Known Aliases: client.aliases
+    required: False
+  - Date of Birth: client.birthdate
+    datatype: date
+  - Street: client.address.address
+    address autocomplete: True
+  - City/Town: client.address.city
+  - State: client.address.state
+    code: states_list()
+  - Zip Code: client.address.zip
+  - Phone Number: client.phone
+  - Alternative Number: client.alternative
+    required: False
+  - Email Address: client.email
+    datatype: email
+    required: False
+  - Is this a criminal/delinquent matter?: opp_party
+    datatype: noyesradio
+---
+question: |
+  [BR] Conflict Check (Must be completed before case will be opened)
+fields:
+  - Did you complete the Conflict Check?: conflict_complete
+    datatype: yesnoradio
+  - Were any Conflicts discovered?: conflicts_exist
+    datatype: yesnoradio
+    show if: conflict_complete
+  - Please describe the potential conflicts: conflict_description
+    input type: area
+    show if: conflicts_exist
+---
+question: |
+  [BR] Please sign your name below to approve the case to be opened.
+signature: supervisor_signature
+under: |
+  ${ studentattorney.supervisor }
+  
+---
+question: |
+  [BR] Client Demographic Information
+fields:
+  - Race/Ethnicity: client.race
+    datatype: dropdown
+    choices:
+      - Asian/Asian American
+      - Black/African American
+      - Hispanic/Latino
+      - Middle Eastern
+      - Native Hawaiian/Pacific Islander
+      - White/Caucausian
+      - Multi-Racial
+      - Other
+  - Gender: client.gender
+    datatype: dropdown
+    choices:
+       - Male
+       - Female
+       - Transgender
+       - Gender Non-Conforming
+       - Other
+       - Unknown
+  - Primary Language(s): client.language
+    datatype: dropdown
+    choices:
+        - English
+        - Spanish
+        - French
+        - Haitian Creole
+        - Portuguese
+        - Mandarin
+        - Cantonese
+        - Other
+  - Which language do you speak?: client.language
+    show if: 
+      variable: client.language
+      is: Other
+  - Interpretor needed?: client.interpretor
+    datatype: yesnoradio
+    hide if:
+      variable: client.language
+      is: English
+  - Marital Status: client.marital
+    datatype: dropdown
+    choices:
+      - Single
+      - Married
+      - Married but Separated
+      - Widowed
+      - Partnered
+      - Divorced
+      - Other
+  - US Immigration Status: client.immig
+    required: False
+  - Additional Notes: client.notes
+    required: False
+    input type: area
+---
+question: |
+  [BR] Client Household Information
+fields:
+  - Household Monthly Income: client.income
+    datatype: currency
+    min: 0
+  - Sources of Income: client.incomesource
+  - Number of People in Household (include client): client.householdsize
+    datatype: integer
+    min: 1
+  - Number of Dependants: client.dependants
+    datatype: integer
+    min: 0
+
+---
+question: |
+  [BR] Opposing Party Contact Information
+fields:
+  - First name: opp.name.first
+  - Last name: opp.name.last
+  - Title(if appp): opp.title
+    required: False
+  - Company(if app): opp.company
+    required: False
+  - Known Aliases: opp.aliases
+    required: False
+  - Date of Birth: opp.dob
+    datatype: date
+  - Street: opp.address.address
+    address autocomplete: True
+  - City/Town: opp.address.city
+  - State: opp.address.state
+    code: states_list()
+  - Zip Code: opp.address.zip
+  - Phone Number: opp.phone
+  - Alternative Number: opp.alternative
+    required: False
+  - Email Address: opp.email
+    datatype: email
+    required: False
+  - Gender: opp.gender
+    datatype: dropdown
+    choices:
+       - Male
+       - Female
+       - Transgender
+       - Gender Non-Conforming
+       - Other
+       - Unknown
+  - Primary Language(s): opp.language
+    datatype: dropdown
+    choices:
+        - English
+        - Spanish
+        - French
+        - Haitian Creole
+        - Portuguese
+        - Mandarin
+        - Cantonese
+        - Other
+  - Which language do you speak?: opp.language
+    show if: 
+      variable: opp.language
+      is: Other
+  - Interpretor needed?: opp.interpretor
+    datatype: yesnoradio
+    hide if:
+      variable: client.language
+      is: English
+  - Additional Notes: opp.notes
+    required: False
+    input type: area
+
+---
+comment: |
+  We can use reconsider here to make sure the selection is updated
+  if the person uses the back button
+reconsider: True
+code: |
+  # Docassemble stops running a code block after variable it's seeking is defined.
+  # So we start with a temp variable, and don't define our real variable name
+  # until we finish building it
+  form_to_use_temp = []
+  form_to_use_temp.append(CaseOpen)
+  
+  form_to_use = form_to_use_temp
+
+---
+code: |
+  package_filename = space_to_underscore(str(client)+" Case Opening.pdf") 
+  email_package = pdf_concatenate(form_to_use, filename=package_filename)
+  email_sent_ok = send_email(to=studentattorney, template=notification,attachments=email_package)
+  
+---
+template: notification
+subject: |
+  ${ client.name } HIPAA Form(s)
+content: |
+  Greetings, ${ studentattorney.name }!
+  
+  This is the Case Opening package for ${ client.name }.
+  
+  Have a nice day!  
+---
+
+question: |
+  [BR] Here is your Case Opening Packet
+mandatory: True
+attachment:
+  variable name: CaseOpen
+  name: Case Opening ${ client.name }
+  filename: Case Opening ${ client.name }
+  pdf template file: Clinic_Wide_Case_Opening_Form_REDONE2.pdf
+  fields:
+    - todays.date: |
+        ${ today() }
+#Student Attorney Info
+    - studentattorney: |
+        ${ studentattorney.name }
+    - Clinic/Practice Area: |
+        ${ studentattorney.practice }
+    - supervisor.name: |
+        ${ studentattorney.supervisor }
+#Conflict Check
+    - ConflictComplete: |
+        ${ conflict_complete }
+    - conflictdate: |
+        ${ format_date(today(), format='short') }
+    - conflict.description: |
+        ${ conflict_description }
+    - caseapproval: |
+        ${ case_approval }
+    - supervisor.signature: |
+        ${ supervisor_signature }
+#Matter Info
+    - Judge: |
+        ${ judge }
+    - CourtAgency: |
+        ${ courthouse }
+    - Docket: |
+        ${ docketnumber }
+    - Referral Source: |
+        ${ referral }
+    - Scope of Representation: |
+        ${ scopeofrep }
+    - Brief Case Synopsis: |
+        ${ casesynopsis }
+    - Clinic/Practice Area: |
+        ${ studentattorney.practice }
+#Client Contact Info
+    - client.name: |
+        ${ client.name }
+    - client.title: |
+        ${ client.title }
+    - client.company: |
+        ${ client.company }
+    - client.dob: |
+        ${ client.birthdate.format("MM/dd/yyyy") }
+    - Known Aliases: |
+        ${ client.aliases }
+    - client.Street Address: |
+        ${ client.address.address }
+    - client.CityTown: |
+        ${ client.address.city }
+    - client.Zip Code: |
+        ${ client.address.zip }
+    - client.Phone: |
+        ${ client.phone }
+    - client.Alternative: |
+        ${ client.alternative }
+    - client.Email: |
+        ${ client.email }
+    - client.Notes: |
+        ${ client.notes }
+#Client Demographic Info
+    - client.Gender: |
+        ${ client.gender }
+    - client.Race/Ethnicity: |
+        ${ client.race }
+    - client.Primary Languages: |
+        ${ client.language }
+    - client.Interpretor: |
+        ${ client.interpretor }
+    - client.Marital Status: |
+        ${ client.marital }
+    - client.Immigration Status: |
+        ${ client.immig }
+#Client Household Info
+    - client.Household Monthly Income: |
+        ${ client.income }
+    - client.Sources of Income: |
+        ${ client.incomesource }
+    - client.Number of People in Household: |
+        ${ client.householdsize }
+    - client.Number of Dependents: |
+        ${ client.dependants } 
+#Opposing Party Information
+    - opp.name: |
+        ${ opp.name }
+    - opp.gender: |
+        ${ opp.gender }
+    - opp.dob: |
+        ${ opp.dob.format("MM/dd/yyyy") }
+    - opp.Title: |
+        ${ opp.title }
+    - opp.Company: |
+        ${ opp.company }
+    - opp.Aliases: |
+        ${ opp.aliases }
+    - opp.Street Address: |
+        ${ opp.address.address }
+    - opp.CityTown: |
+        ${ opp.address.city }
+    - opp.Zip Code: |
+        ${ opp.address.zip }
+    - opp.Phone: |
+        ${ opp.phone }
+    - opp.Alternative: |
+        ${ opp.alternative }
+    - opp.interpreter: |
+        ${ opp.interpretor }
+    - opp.Primary Languages: |
+        ${ opp.language }
+    - opp.Email: |
+        ${ opp.email }
+    - opp.Notes: |
+        ${ opp.notes }
+#Relevant Contact
+    - contact.Name: |
+        ${ contact.item(0).name }
+    - contact.Relation: |
+        ${ contact.item(0).relation }
+    - contact.email: |
+        ${ contact.item(0).email }
+    - contact.phone: |
+        ${ contact.item(0).phone }
+    - contact.address: |
+        ${ contact.item(0).address.address }
+    - contact.citytown: |
+        ${ contact.item(0).address.city },${ contact.item(0).address.state } ${ contact.item(0).address.zip }
+#Relevant Contact 2
+    - contact2.Name: |
+        ${ contact.item(1).name }
+    - contact2.Relation: |
+        ${ contact.item(1).relation }
+    - contact2.email: |
+        ${ contact.item(1).email }
+    - contact2.phone: |
+        ${ contact.item(1).phone }
+    - contact2.address: |
+        ${ contact.item(1).address.address }
+    - contact2.citytown: |
+        ${ contact.item(1).address.city }
+    - contact2.state: |
+        ${ contact.item(1).address.state } 
+    - contact2.zipcode: |
+        ${ contact.item(1).address.zip }
+#Relevant Contact 3
+    - contact3.Name: |
+        ${ contact.item(2).name }
+    - contact3.Relation: |
+        ${ contact.item(2).relation }
+    - contact3.email: |
+        ${ contact.item(2).email }
+    - contact3.phone: |
+        ${ contact.item(2).phone }
+    - contact3.address: |
+        ${ contact.item(2).address.address }
+    - contact3.citytown: |
+        ${ contact.item(2).address.city }
+    - contact3.state: |
+        ${ contact.item(2).address.state } 
+    - contact3.zipcode: |
+        ${ contact.item(2).address.zip }
+#Relevant Contact 4
+    - contact4.Name: |
+        ${ contact.item(3).name }
+    - contact4.Relation: |
+        ${ contact.item(3).relation }
+    - contact4.email: |
+        ${ contact.item(3).email }
+    - contact4.phone: |
+        ${ contact.item(3).phone }
+    - contact4.address: |
+        ${ contact.item(3).address.address }
+    - contact4.citytown: |
+        ${ contact.item(3).address.city }
+    - contact4.state: |
+        ${ contact.item(3).address.state } 
+    - contact4.zipcode: |
+        ${ contact.item(3).address.zip }
+Mandatory: True
